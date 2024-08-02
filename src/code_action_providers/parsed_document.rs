@@ -1,5 +1,5 @@
 use tower_lsp::lsp_types::Url;
-use tree_sitter::{Node, Parser, Point, Query, QueryCapture, QueryCursor, Tree};
+use tree_sitter::{Node, Parser, Point, Query, QueryCursor, Tree};
 
 pub struct ParsedDocument {
     tree: Tree,
@@ -8,9 +8,15 @@ pub struct ParsedDocument {
     pub uri: Url,
 }
 
-fn create_parser() -> Parser {
+fn create_parser(lang: &str) -> Parser {
     let mut parser = Parser::new();
-    let language = tree_sitter_python::language();
+    let language = match lang {
+        "python" => tree_sitter_python::language(),
+        "rust" => tree_sitter_rust::language(),
+        // TODO(patwie): Better error handling
+        _ => tree_sitter_python::language(),
+    };
+
     parser
         .set_language(&language)
         .expect("Error loading Python grammar");
@@ -18,9 +24,9 @@ fn create_parser() -> Parser {
 }
 
 impl ParsedDocument {
-    pub fn new(source: &str, uri: &Url) -> Self {
-        let mut parser = create_parser();
-        let tree = parser.parse(&source, None).unwrap();
+    pub fn new(source: &str, uri: &Url, language: &str) -> Self {
+        let mut parser = create_parser(language);
+        let tree = parser.parse(source, None).unwrap();
         Self {
             tree,
             parser,
@@ -30,7 +36,7 @@ impl ParsedDocument {
     }
 
     pub fn update(&mut self, source: &str) {
-        self.tree = self.parser.parse(&source, Some(&self.tree)).unwrap();
+        self.tree = self.parser.parse(source, Some(&self.tree)).unwrap();
         self.source = source.to_string();
     }
 
@@ -41,7 +47,7 @@ impl ParsedDocument {
     }
 
     pub fn get_text(&self, node: &Node) -> String {
-        node.utf8_text(self.source.as_str().as_bytes())
+        node.utf8_text(self.source.as_bytes())
             .expect("can find text")
             .to_string()
     }
@@ -54,10 +60,6 @@ impl ParsedDocument {
             .matches(&q, *node, self.source.as_bytes())
             .flat_map(|m| m.captures)
             .next();
-        if let Some(m) = first_match {
-            return Some(m.node.clone());
-        } else {
-            None
-        }
+        first_match.map(|m| m.node)
     }
 }

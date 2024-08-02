@@ -19,12 +19,9 @@ pub fn lsp_position_to_ts_point(position: &Position) -> Point {
 
 // Convert Tree-sitter Range to LSP Range
 pub fn ts_node_to_lsp_range(node: &tree_sitter::Node) -> Range {
-    let mut start = ts_point_to_lsp_position(&node.start_position());
-    let mut end = ts_point_to_lsp_position(&node.end_position());
-    Range {
-        start: start,
-        end: end,
-    }
+    let start = ts_point_to_lsp_position(&node.start_position());
+    let end = ts_point_to_lsp_position(&node.end_position());
+    Range { start, end }
 }
 pub fn prepend_ts_node_to_lsp_range(node: &tree_sitter::Node) -> Range {
     let mut pos = ts_point_to_lsp_position(&node.start_position());

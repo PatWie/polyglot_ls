@@ -1,0 +1,98 @@
+code_actions:
+  - name: 'Update function docstring'
+    triggers:
+      - kind: function_item
+        relation: findup
+    context:
+      kind: function_item
+      relation: findup
+      hints:
+        - name: FUNCTION_CONTEXT
+          query: ((function_item) @function)
+    placement_strategies:
+      - query: ((function_item) @function)
+        position: before
+    prompt_template: |
+      Human: Write a rust docstring for a given function. Here is an example
+      for
+
+        pub fn findup<'a>(
+            mut node: Option<tree_sitter::Node<'a>>,
+            type_name: &str,
+        ) -> Option<tree_sitter::Node<'a>> {
+            while node.is_some() {
+                let inner_node = node.unwrap();
+                if inner_node.kind() == type_name {
+                    return Some(inner_node);
+                }
+                node = inner_node.parent();
+            }
+            None
+        }
+
+      how it can look like
+
+        /// Traverse up the AST nodes until a node of the specified type is found.
+        ///
+        /// # Arguments
+        ///
+        /// * `node` - The starting node for the search.
+        /// * `type_name` - The type of the node to search for.
+        ///
+        /// # Returns
+        ///
+        /// An `Option<Node>` containing the found node or `None` if no such node is found.
+
+      NEVER write anything else besides the docstring block. ONLY generate the docstring,
+      It should include Arguments, Returns, Example if necessary. First line must be in imperative mood. Do NOT output anything else after the docstring.
+      Update and correct the pre-existing docstring, parametern names or types might have changed. Wrap everything to 88 chars.
+      NEVER write back the initial code, JUST the docstring itself.
+
+      Here is the task:
+      <task>
+      <<<FUNCTION_CONTEXT>>>
+      </task>
+      Assistant:
+  - name: 'Add struct comments'
+    triggers:
+      - kind: struct_item
+        relation: findup # findup | exact
+    context:
+      kind: struct_item
+      relation: findup # findup | exact
+      hints:
+        - name: FUNCTION_CONTEXT
+          query: ((struct_item) @function)
+    placement_strategies:
+      - query: ((field_declaration_list) @body)
+        position: replace_exact
+    prompt_template: |
+      Human: Write a rust docstring for a given function. Here is an example
+      for
+
+      pub struct FrameInfo {
+          pub frame: Frame,
+          pub category_pair: CategoryPairHandle,
+          pub flags: FrameFlags,
+      }
+
+      how it can look like
+
+      {
+          /// The absolute address or label of this frame.
+          pub frame: Frame,
+          /// The category pair of this frame.
+          pub category_pair: CategoryPairHandle,
+          /// The flags of this frame. Use `FrameFlags::empty()` if unsure.
+          pub flags: FrameFlags,
+      }
+
+      JUST write back the initial code with comments itself. Output only the
+      content within the brackets {...} and the brackets. Do not output
+      anything else.
+
+      Here is the task:
+      <task>
+      <<<FUNCTION_CONTEXT>>>
+      </task>
+      Assistant:

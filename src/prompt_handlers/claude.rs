@@ -1,13 +1,9 @@
-use aws_config::{
-    default_provider::{credentials::DefaultCredentialsChain, region::DefaultRegionChain},
-    BehaviorVersion,
-};
+use aws_config::BehaviorVersion;
 use aws_sdk_bedrockruntime::{
     operation::converse::{ConverseError, ConverseOutput},
     types::{ContentBlock, ConversationRole, Message},
     Client,
 };
-use std::error::Error;
 
 use super::traits::PromptHandler;
 

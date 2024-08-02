@@ -1,0 +1,210 @@
+code_actions:
+  # Displayed name in frontend
+  - name: 'Update function docstring'
+    # Heuristic to activate when cursor matches this element. Search can be
+    # exact to match node exactly or traverse up to root node via find_up.
+    triggers:
+      - kind: function_definition
+        relation: findup # findup | exact
+    # Search context from current cursor to contain placement
+    context:
+      kind: function_definition
+      relation: findup # findup | exact
+      # Can be embedded in prompt formulation via variable interpolation
+      # using <<<name>>>.
+      hints:
+        - name: FUNCTION_CONTEXT
+          query: ((function_definition) @function)
+    # Where to place the output opf the LLM. Will go through the list in order
+    # and first match will be used.
+    placement_strategies:
+      - query: |
+          (function_definition
+            body: (block
+              (expression_statement
+                (string) @docstring)))
+        position: replace_block
+      - query: |
+          (function_definition
+            body: (block) @body)
+        position: before
+    # Text provided to the LLM.
+    prompt_template: |
+      Human: Write a google style docstring for a given function. Here is an example
+      for
+
+        def fetch_smalltable_rows(
+            table_handle: smalltable.Table,
+            keys: Sequence[bytes | str],
+            require_all_keys: bool = False,
+        ) -> Mapping[bytes, tuple[str, ...]]:
+
+      how it can look like
+
+        """Fetch rows from a Smalltable.
+
+        Retrieves rows pertaining to the given keys from the Table instance
+        represented by table_handle.  String keys will be UTF-8 encoded.
+
+        Args:
+            table_handle: An open smalltable.Table instance.
+            keys: A sequence of strings representing the key of each table
+              row to fetch.  String keys will be UTF-8 encoded.
+            require_all_keys: If True only rows with values set for all keys will be
+              returned.
+
+        Returns:
+            A dict mapping keys to the corresponding table row data
+            fetched. Each row is represented as a tuple of strings. For
+            example:
+
+            {b'Serak': ('Rigel VII', 'Preparer'),
+             b'Zim': ('Irk', 'Invader'),
+             b'Lrrr': ('Omicron Persei 8', 'Emperor')}
+
+            Returned keys are always bytes.  If a key from the keys argument is
+            missing from the dictionary, then that row was not found in the
+            table (and require_all_keys must have been False).
+
+        Raises:
+            IOError: An error occurred accessing the smalltable.
+
+        Examples:
+            >>> my_table = fetch_smalltable_rows(handle, ["id", "user"], True)
+        """
+
+      NEVER write anything else besides the docstring block. ONLY generate the docstring,
+      It should include Args, Returns, Raise, Yield, Attributes, Notes, Example if necessary. First line must be in imperative mood. Do NOT output anything else after the docstring.
+      Update and correct the pre-existing docstring, parametern names or types might have changed. Wrap everything to 88 chars.
+      NEVER write back the initial code, JUST the docstring itself.
+
+      Here is the task:
+      <task>
+      <<<FUNCTION_CONTEXT>>>
+      </task>
+      Assistant:
+  - name: 'Update class docstring'
+    triggers:
+      - kind: class_definition
+        relation: findup
+    context:
+      kind: class_definition
+      relation: findup
+      hints:
+        - name: CLASS_CONTEXT
+          query: ((class_definition) @class)
+    placement_strategies:
+      - query: |
+          (class_definition
+            body: (block
+              (expression_statement
+                (string) @docstring)))
+        position: replace_block
+      - query: |
+          (class_definition
+            body: (block) @body)
+        position: before
+    prompt_template: |
+      Human: Write a google style docstring for a given class not a function. JUST the class. Here is an example
+      for
+
+        class ExampleClass(object):
+
+      this is how it can look like
+
+          """The summary line for a class docstring should fit on one line.
+
+          If the class has public attributes, they may be documented here
+          in an ``Attributes`` section and follow the same formatting as a
+          function's ``Args`` section. Alternatively, attributes may be documented
+          inline with the attribute's declaration (see __init__ method below).
+
+          Properties created with the ``@property`` decorator should be documented
+          in the property's getter method.
+
+          Attributes:
+              attr1 (str): Description of `attr1`.
+              attr2 (:obj:`int`, optional): Description of `attr2`.
+
+          """
+
+      NEVER write anything else besides the docstring block. No markdown like "```python". ONLY generate the docstring.
+      It should include a summary of what th class is doing and attributes if necessary. First line must be in imperative mood. Do NOT output anything else after the docstring.
+      Update and correct the pre-existing docstring. Wrap everything to 88 chars.
+      NEVER write back the initial code, JUST the docstring itself.
+
+      Here is the task:
+      <task>
+        <<<CLASS_CONTEXT>>>
+      </task>
+      Assistant:
+  - name: 'Update comment'
+    triggers:
+      - kind: comment
+        relation: findup
+    context:
+      kind: comment
+      relation: findup
+      hints:
+        - name: COMMENT_CONTEXT
+          query: ((comment) @comment)
+    placement_strategies:
+      - query: |
+          ((comment) @comment)
+        position: replace_block
+    prompt_template: |
+      Human: Improve the comment by better grammer, fixing typos and concise expression.
+      ONLY output the comment without explanations. Do not wrap it in any markdown. A comment is a single or multiple complete sentences ending with a period. Just return the comment. Keep the start "\#" as it is a comment.
+
+      Here is the task:
+      <task>
+        <<<COMMENT_CONTEXT>>>
+      </task>
+      Assistant:
+  - name: 'Update function args'
+    triggers:
+      - kind: function_definition
+        relation: findup
+    context:
+      kind: function_definition
+      relation: findup
+      hints:
+        - name: FUNCTION_CONTEXT
+          query: ((function_definition) @function)
+        - name: ARGS_CONTEXT
+          query: |
+            (function_definition
+            parameters: (parameters) @parameters)
+    placement_strategies:
+      - query: |
+          (function_definition
+          parameters: (parameters) @parameters)
+        position: replace_exact
+    answer_template: "(<<<ANSWER>>>)"
+    prompt_template: |
+      Human: Enhance the function parameters by updating or adding python3 type annotations
+
+      for
+          def fetch_smalltable_rows( table_handle, keys,
+              require_all_keys: bool = False,
+          ):
+
+      a version with annotations might look like
+
+          def fetch_smalltable_rows(
+              table_handle: smalltable.Table,
+              keys: Sequence[bytes | str],
+              require_all_keys: bool = False,
+          ) -> Mapping[bytes, tuple[str, ...]]:
+
+
+      Use the correct type by understand the function body. Do NOT use "Any" if you can derive the correct type from the function body.
+      If there are pre-existing default values, keep them as they are oif they make sense.
+      Remember, class methods start with "self" as first arguments without an annotation. Keep pre-existing "self" args.
+      ONLY output the parameters comma-separated, without function name and parenthese
+
+      Here is the function:
+      <task>
+        <<<FUNCTION_CONTEXT>>>
+      </task>
+      Assistant:
