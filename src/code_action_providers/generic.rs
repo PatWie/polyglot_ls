@@ -147,7 +147,7 @@ impl ActionProvider for GenericProvider {
         if let Some(context_node) = context_node {
             let ctx_range = helper::ts_node_to_lsp_range(&context_node);
             return Some(CodeAction {
-                title: self.config.name.clone(),
+                title: format!("Polyglot: {}", self.config.name),
                 kind: Some(CodeActionKind::REFACTOR_REWRITE),
                 data: Some(json!(ResolveAction {
                     id: self.id.to_string(),

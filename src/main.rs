@@ -257,7 +257,7 @@ async fn main() {
     let home_dir = env::var("HOME").expect("Failed to get home directory");
     let config_dir = Path::new(&home_dir)
         .join(".config")
-        .join("llm-sitter-ls")
+        .join("polyglot_ls")
         .join("code_actions");
 
     log::info!("Processing  config-dir: {:?}", config_dir);
@@ -265,7 +265,7 @@ async fn main() {
         log::info!("Processing language config: {}", language);
         let path = Path::new(&home_dir)
             .join(".config")
-            .join("llm-sitter-ls")
+            .join("polyglot_ls")
             .join("code_actions")
             .join(format!("{}.yaml", language));
         match config::CodeActionConfig::from_yaml(&path) {

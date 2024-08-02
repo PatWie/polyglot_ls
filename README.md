@@ -1,11 +1,11 @@
-# LLM-Sitter-LS
+# Polyglot-LS
 
-LLM-Sitter-LS is a single-binary language server that uses the tree-sitter
+Polyglot-LS is a single-binary language server that uses the tree-sitter
 parser to provide context-aware code actions. These code actions are performed
 by a Large Language Model (LLM) by forming a prompt which interpolated a given
 text with tree-sitter nodes content.
 
-![LLM-Sitter-LS Preview](.github/preview.png)
+![Polyglot-LS Preview](.github/preview.png)
 
 ## Setup
 
@@ -24,8 +24,8 @@ To compile the project, follow these steps:
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/patwie/llm-sitter-ls.git
-   cd llm-sitter-ls
+   git clone https://github.com/patwie/polyglot_ls.git
+   cd polyglot_ls
    ```
 
 2. Build the project:
@@ -34,29 +34,29 @@ To compile the project, follow these steps:
    cargo build --release
    ```
 
-3. The binary will be located in `target/release/llm-sitter-ls`.
+3. The binary will be located in `target/release/polyglot_ls`.
 
 ### Using the Language Server
 
 1. Copy the contents of the `code_actions` configs directory to
-   `$HOME/.config/llm-sitter-ls/code_actions/`.
+   `$HOME/.config/polyglot_ls/code_actions/`.
 
 2. To run the server, execute:
 
    ```sh
-   ./target/release/llm-sitter-ls
+   ./target/release/polyglot_ls
    ```
 
    For debugging, use:
 
    ```sh
-   ./target/release/llm-sitter-ls --listen
+   ./target/release/polyglot_ls --listen
    ```
 
    For direct usage in Neovim, use:
 
    ```sh
-   ./target/release/llm-sitter-ls --stdin
+   ./target/release/polyglot_ls --stdin
    ```
 
 ## Limitations
@@ -77,11 +77,11 @@ For Neovim and the "neovim/nvim-lspconfig" plugin, use the following setup:
 ```lua
 local configs = require 'lspconfig.configs'
 
-if not configs.llmls then
-    configs.llmls = {
+if not configs.polyglot_ls then
+    configs.polyglot_ls = {
       default_config = {
-        cmd = { "/path/to/llm-sitter-ls" , "--stdin" },
-        -- for debugging, launch "llm-sitter-ls" with --listen and use:
+        cmd = { "/path/to/polyglot_ls" , "--stdin" },
+        -- for debugging, launch "polyglot_ls" with --listen and use:
         -- cmd = vim.lsp.rpc.connect('127.0.0.1', 9257),
         filetypes = { 'python', 'rust' },
         single_file_support = true,
