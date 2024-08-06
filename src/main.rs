@@ -1,12 +1,13 @@
 use code_action_providers::config;
-use code_action_providers::generic::GenericProvider;
+use code_action_providers::lua_provider::LuaProvider;
 use code_action_providers::parsed_document::ParsedDocument;
 use code_action_providers::traits::ActionProvider;
+use code_action_providers::yaml_provider::YamlProvider;
 use prompt_handlers::claude::BedrockConverse;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 pub mod code_action_providers;
@@ -225,19 +226,15 @@ impl LanguageServer for Backend {
     // }
 }
 
-fn read_language_config_files(config_dir: &Path) -> Vec<String> {
+fn read_language_config_files(config_dir: &Path, filter: &str) -> Vec<PathBuf> {
     let mut config_files = Vec::new();
     if let Ok(entries) = std::fs::read_dir(config_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if (path.is_file() || path.is_symlink())
-                && path.extension().map(|ext| ext == "yaml").unwrap_or(false)
+                && path.extension().map(|ext| ext == filter).unwrap_or(false)
             {
-                if let Some(file_stem) = path.file_stem() {
-                    if let Some(file_name) = file_stem.to_str() {
-                        config_files.push(file_name.to_string());
-                    }
-                }
+                config_files.push(path);
             }
         }
     }
@@ -261,29 +258,41 @@ async fn main() {
         .join("code_actions");
 
     log::info!("Processing  config-dir: {:?}", config_dir);
-    for language in read_language_config_files(&config_dir) {
-        log::info!("Processing language config: {}", language);
-        let path = Path::new(&home_dir)
+    for language in ["rust", "python"] {
+        let config_dir = Path::new(&home_dir)
             .join(".config")
             .join("polyglot_ls")
             .join("code_actions")
-            .join(format!("{}.yaml", language));
-        match config::CodeActionConfig::from_yaml(&path) {
-            Ok(language_config) => {
-                for (k, config) in language_config.code_actions.into_iter().enumerate() {
-                    log::info!("Register action {} for {}", config.name, language);
-                    providers
-                        .entry(language.clone())
-                        .or_default()
-                        .push(Box::new(GenericProvider::from_config(
-                            config,
-                            &format!("py.{k}"),
-                            prompt_handler.clone(),
-                        )));
+            .join(language);
+        for config_path in read_language_config_files(&config_dir, "yaml") {
+            log::info!("Processing language config: {:?}", config_path);
+            match config::CodeActionConfig::from_yaml(&config_path) {
+                Ok(language_config) => {
+                    for (k, config) in language_config.code_actions.into_iter().enumerate() {
+                        log::info!("Register action {} for {:?}", config.name, config_path);
+                        providers
+                            .entry(language.to_owned())
+                            .or_default()
+                            .push(Box::new(YamlProvider::from_config(
+                                config,
+                                &format!("py.{k}"),
+                                prompt_handler.clone(),
+                            )));
+                    }
                 }
-            }
-            Err(e) => log::warn!("Cannot read {:?} because of {}", &path, e),
-        };
+                Err(e) => log::warn!("Cannot read {:?} because of {}", &config_path, e),
+            };
+        }
+        for config_path in read_language_config_files(&config_dir, "lua") {
+            log::info!("Processing language config: {:?}", config_path);
+            providers
+                .entry(language.to_owned())
+                .or_default()
+                .push(Box::new(
+                    LuaProvider::try_new(&config_path.to_string_lossy(), prompt_handler.clone())
+                        .unwrap(),
+                ));
+        }
     }
 
     let (service, socket) = LspService::new(|client| Backend {

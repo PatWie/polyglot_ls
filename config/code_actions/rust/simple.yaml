@@ -1,0 +1,44 @@
+code_actions:
+  - name: 'Add struct comments'
+    triggers:
+      - kind: struct_item
+        relation: findup # findup | exact
+    context:
+      kind: struct_item
+      relation: findup # findup | exact
+      hints:
+        - name: FUNCTION_CONTEXT
+          query: ((struct_item) @function)
+    placement_strategies:
+      - query: ((field_declaration_list) @body)
+        position: replace_exact
+    prompt_template: |
+      Human: Write a rust docstring for a given function. Here is an example
+      for
+
+      pub struct FrameInfo {
+          pub frame: Frame,
+          pub category_pair: CategoryPairHandle,
+          pub flags: FrameFlags,
+      }
+
+      how it can look like
+
+      {
+          /// The absolute address or label of this frame.
+          pub frame: Frame,
+          /// The category pair of this frame.
+          pub category_pair: CategoryPairHandle,
+          /// The flags of this frame. Use `FrameFlags::empty()` if unsure.
+          pub flags: FrameFlags,
+      }
+
+      JUST write back the initial code with comments itself. Output only the
+      content within the brackets {...} and the brackets. Do not output
+      anything else.
+
+      Here is the task:
+      <task>
+      <<<FUNCTION_CONTEXT>>>
+      </task>
+      Assistant:

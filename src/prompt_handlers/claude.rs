@@ -15,10 +15,8 @@ const AWS_PROFILE: &str = "my-aws-bedrock";
 
 #[derive(Debug)]
 pub struct BedrockConverse {
-    sdk_config: aws_config::SdkConfig,
     client: Client,
     model_id: &'static str,
-    region: &'static str,
 }
 
 impl BedrockConverse {
@@ -32,10 +30,8 @@ impl BedrockConverse {
         let client = Client::new(&sdk_config);
 
         Ok(BedrockConverse {
-            sdk_config,
             client,
             model_id: MODEL_ID,
-            region: CLAUDE_REGION,
         })
     }
 }

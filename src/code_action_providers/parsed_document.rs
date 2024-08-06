@@ -2,9 +2,10 @@ use tower_lsp::lsp_types::Url;
 use tree_sitter::{Node, Parser, Point, Query, QueryCursor, Tree};
 
 pub struct ParsedDocument {
-    tree: Tree,
+    pub tree: Tree,
     parser: Parser,
     source: String,
+    language: String,
     pub uri: Url,
 }
 
@@ -31,7 +32,19 @@ impl ParsedDocument {
             tree,
             parser,
             source: source.to_string(),
+            language: language.to_string(),
             uri: uri.to_owned(),
+        }
+    }
+    pub fn duplicate(&self) -> Self {
+        let mut parser = create_parser(&self.language);
+        let tree = parser.parse(self.source.clone(), None).unwrap();
+        Self {
+            tree,
+            parser,
+            language: self.language.clone(),
+            source: self.source.to_string(),
+            uri: self.uri.to_owned(),
         }
     }
 

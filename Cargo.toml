@@ -26,3 +26,6 @@ tree-sitter-python = "0.21.0"
 tree-sitter-rust = "0.21.2"
 ws_stream_tungstenite = "0.13.0"
 async-codec-lite = { version = "0.0", optional = true }
+mlua = { version = "0.9.9", features = ["lua51", "async", "macros", "vendored", "serialize"] }
+anyhow = "1.0.86"
+thiserror = "1.0.63"

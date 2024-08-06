@@ -24,14 +24,14 @@ fn build_prompt(template: &str, hints: &HashMap<String, String>) -> String {
     prompt.to_owned()
 }
 
-pub struct GenericProvider {
+pub struct YamlProvider {
     prompt_handler: Arc<BedrockConverse>,
 
     config: config::CodeAction,
     id: String,
 }
 
-impl GenericProvider {
+impl YamlProvider {
     pub fn from_config(
         config: config::CodeAction,
         id: &str,
@@ -45,7 +45,7 @@ impl GenericProvider {
     }
 }
 #[async_trait]
-impl ActionProvider for GenericProvider {
+impl ActionProvider for YamlProvider {
     fn can_handle(&self, action_name: &str) -> bool {
         action_name == self.id
     }
@@ -84,20 +84,20 @@ impl ActionProvider for GenericProvider {
                     log::info!("placement {:?}", placement);
                     let (range, new_text) = match placement.position {
                         config::Position::ReplaceBlock => {
-                            let mut target_range = helper::ts_node_to_lsp_range(&placement_node);
-                            target_range.start.character = 0;
+                            let mut placement_range = helper::ts_node_to_lsp_range(&placement_node);
+                            placement_range.start.character = 0;
                             let new_text = helper::indent_text(
                                 &answer,
                                 placement_node.range().start_point.column,
                             );
-                            (target_range, new_text)
+                            (placement_range, new_text)
                         }
                         config::Position::ReplaceExact => {
-                            let target_range = helper::ts_node_to_lsp_range(&placement_node);
-                            (target_range, answer)
+                            let placement_range = helper::ts_node_to_lsp_range(&placement_node);
+                            (placement_range, answer)
                         }
                         config::Position::Before => {
-                            let target_range =
+                            let placement_range =
                                 helper::prepend_ts_node_to_lsp_range(&placement_node);
                             let new_text = format!(
                                 "{}\n",
@@ -106,7 +106,7 @@ impl ActionProvider for GenericProvider {
                                     placement_node.range().start_point.column,
                                 )
                             );
-                            (target_range, new_text)
+                            (placement_range, new_text)
                         }
                     };
 

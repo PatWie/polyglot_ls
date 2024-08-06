@@ -1,5 +1,8 @@
 pub trait PromptHandler {
     type Error: std::error::Error;
 
-    async fn answer(&self, prompt: &str) -> Result<String, Self::Error>;
+    fn answer(
+        &self,
+        prompt: &str,
+    ) -> impl std::future::Future<Output = Result<String, Self::Error>> + Send;
 }
