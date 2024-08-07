@@ -1,0 +1,79 @@
+code_actions:
+  - name: 'Update Class Docstring'
+    triggers:
+      - kind: class_definition
+        relation: findup
+    context:
+      kind: class_definition
+      relation: findup
+      hints:
+        - name: CLASS_CONTEXT
+          query: ((class_definition) @class)
+    placement_strategies:
+      - query: |
+          (class_definition
+            body: (block
+              (expression_statement
+                (string) @docstring)))
+        position: replace_block
+      - query: |
+          (class_definition
+            body: (block) @body)
+        position: before
+    prompt_template: |
+      Human: Write a google style docstring for a given class not a function. JUST the class. Here is an example
+      for
+
+        class ExampleClass(object):
+
+      this is how it can look like
+
+          """The summary line for a class docstring should fit on one line.
+
+          If the class has public attributes, they may be documented here
+          in an ``Attributes`` section and follow the same formatting as a
+          function's ``Args`` section. Alternatively, attributes may be documented
+          inline with the attribute's declaration (see __init__ method below).
+
+          Properties created with the ``@property`` decorator should be documented
+          in the property's getter method.
+
+          Attributes:
+              attr1 (str): Description of `attr1`.
+              attr2 (:obj:`int`, optional): Description of `attr2`.
+
+          """
+
+      NEVER write anything else besides the docstring block. No markdown like "```python". ONLY generate the docstring.
+      It should include a summary of what th class is doing and attributes if necessary. First line must be in imperative mood. Do NOT output anything else after the docstring.
+      Update and correct the pre-existing docstring. Wrap everything to 88 chars.
+      NEVER write back the initial code, JUST the docstring itself.
+
+      Here is the task:
+      <task>
+        <<<CLASS_CONTEXT>>>
+      </task>
+      Assistant:
+  - name: 'Fix Comment Grammar'
+    triggers:
+      - kind: comment
+        relation: findup
+    context:
+      kind: comment
+      relation: findup
+      hints:
+        - name: COMMENT_CONTEXT
+          query: ((comment) @comment)
+    placement_strategies:
+      - query: |
+          ((comment) @comment)
+        position: replace_block
+    prompt_template: |
+      Human: Improve the comment by better grammer, fixing typos and concise expression.
+      ONLY output the comment without explanations. Do not wrap it in any markdown. A comment is a single or multiple complete sentences ending with a period. Just return the comment. Keep the start "\#" as it is a comment.
+
+      Here is the task:
+      <task>
+        <<<COMMENT_CONTEXT>>>
+      </task>
+      Assistant:

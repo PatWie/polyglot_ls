@@ -1,11 +1,73 @@
 # Polyglot-LS
 
-Polyglot-LS is a single-binary language server that uses the tree-sitter
-parser to provide context-aware code actions. These code actions are performed
-by a Large Language Model (LLM) by forming a prompt which interpolated a given
-text with tree-sitter nodes content.
+The only sane way to integrate Large Language Models (LLMs) into *any* editor
+that supports the Language Server Protocol (LSP) is through a language server.
 
-![Polyglot-LS Preview](.github/preview.png)
+![Polyglot-LS Preview](.github/preview.gif)
+
+Polyglot-LS is a language server written in Rust that embeds Lua scripting,
+which is responsible for creating prompts, post-processing LLM answers, and
+determining where to place the LLM output. It has access to the Tree-Sitter
+Abstract Syntax Tree (AST) and can walk nodes, form Tree-sitter queries.
+
+![Polyglot-LS Overview](.github/polyglot-ls-overview-scene.svg)
+
+## Usecases
+
+To emphasize that point, using Lua scripting allows you to access any
+information from the current file in a structured way, and you are free to
+construct any string that will be used as a prompt for the language model. Here
+are some use cases from my perspective:
+
+### Add Documentation
+
+Adding or updating docstrings to existing function implementations for various
+languages. This will not only provide context but also determine where to place
+these docstrings, allowing you to replace the documentation without touching
+the code.
+
+### Adjust function signatures
+
+Using tree-sitter, a code-action can extract context (function source, nearest
+class source, any TreeSitter node) to form prompts that can target other
+TreeSitter nodes, like parameter lists of functions, which should be
+substituted with LLM outputs.
+
+### Chat locally
+
+Engage in conversations with large language models (LLMs) by using Markdown
+files. When you select your prompt, all the previous text will be used as
+context, and the model's response will be output below, potentially overriding
+everything below, similar to how web-based user interfaces (UIs) work when
+editing prompts.
+
+Or ask in any file via a prompt.
+
+
+**For Neovim users:**, you can combine this with fuzzy-finding of all `.md`
+files in a specific directory:
+
+```lua
+vim.keymap.set("n", "<leader>cn", function()
+  builtin.find_files({
+    prompt_title = "< Chats >",
+    cwd = "$HOME/.chats/",
+  })
+end)
+```
+
+This, combined with [undotree](https://github.com/mbbill/undotree), provides a
+powerful history feature and quick access to different chats.
+
+
+### Fix typos
+
+While you have access to tree-sitter information, you can use ranges to fix the
+wording of selected text. This includes git commit messages when using your
+editor to write them.
+
+
+See [configs](./config/code_actions/) for examples.
 
 ## Setup
 
@@ -65,10 +127,6 @@ The following are not hard limitations, but rather practical choices:
 
 - This project only supports the AWS Bedrock model (no ChatGPT, no Ollama).
 - Many settings are hard-coded (e.g., the used model).
-- Only example code actions are implemented for Python and Rust.
-- During compilation, Clippy will report some warnings in your terminal. This
-  is a work-in-progress Proof of Concept.
-- The name of this project may change in the future.
 
 ## Integration
 
@@ -83,7 +141,7 @@ if not configs.polyglot_ls then
         cmd = { "/path/to/polyglot_ls" , "--stdin" },
         -- for debugging, launch "polyglot_ls" with --listen and use:
         -- cmd = vim.lsp.rpc.connect('127.0.0.1', 9257),
-        filetypes = { 'python', 'rust' },
+        filetypes = { 'python', 'rust', 'text', 'go', 'gitcommit', 'markdown' },
         single_file_support = true,
       },
     }
@@ -92,101 +150,4 @@ end
 
 ## Configuration Tutorial
 
-Each behavior is configured in YAML. Let's start by adding a function to place
-a docstring to a Python function. Instead of:
-
-```python
-def add(a, b):
-    return a + b
-```
-
-We want the output:
-
-```python
-def add(a, b):
-    """Add two numbers.
-
-    Args:
-        a (int or float): The first number to add.
-        b (int or float): The second number to add.
-
-    Returns:
-        int or float: The sum of a and b.
-
-    Examples:
-        >>> add(2, 3)
-        5
-        >>> add(2.5, 3.2)
-        5.7
-    """
-    return a + b
-```
-
-To add such functionality, we first need to specify the trigger. Open the
-[Tree-sitter Playground](https://tree-sitter.github.io/tree-sitter/playground)
-and place the code above. According to the playground, this code action should
-be enabled whenever the cursor is within a `function_definition` node.
-
-```yaml
-triggers:
-  - kind: function_definition
-    relation: findup
-```
-
-This will start in the current node under the cursor and traverse the AST up
-until the first `function_definition` node. If no such node is found, the
-action will be disabled.
-
-To form a prompt, we also want to inform the LLM about some _context_ for the
-action. In this case, we use the entire function (we could also use the entire
-source code via `kind=module`).
-
-```yaml
-context:
-  kind: function_definition
-  relation: findup # findup | exact
-  hints:
-    - name: FUNCTION_CONTEXT
-      query: ((function_definition) @function)
-```
-
-This is the start node to extract hints, like parameters, function body, and so
-on, which can be interpolated into the prompt. In our case, we use the entire
-function as a query. Those query results will interpolated into the the
-prompt-template as a hint:
-
-```yaml
-prompt_template: |
-  Do this or that for <<<FUNCTION_CONTEXT>>>
-```
-
-The answer from the LLM might need some post-processing (e.g., adding
-brackets), which can be configured via an optional `answer_template`:
-
-```yaml
-answer_template: "{<<ANSWER>>>}"
-```
-
-The last piece is to tell the front-end where the answer should be placed. This
-is a list of possible tree-sitter queries, which are walked in order, and
-the first captured match will determine the target range. For Python functions,
-we first want to try replacing the existing docstring. If this is not possible,
-we will add a new docstring (before the function body).
-
-```yaml
-placement_strategies:
-  # Try to find the docstring node
-  - query: |
-      (function_definition
-        body: (block
-          (expression_statement
-            (string) @docstring)))
-    position: replace_block
-  # If not existent, find the body node and place it before
-  - query: |
-      (function_definition
-        body: (block) @body)
-    position: before
-```
-
-See the `config/code_actions/` directory for more examples.
+See the [Tutorial.md](./TUTORIAL.md).

@@ -10,7 +10,7 @@ use async_trait::async_trait;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActionContext {
     pub uri: Url,
-    pub ctx_range: tower_lsp::lsp_types::Range,
+    pub selection_range: tower_lsp::lsp_types::Range,
 }
 
 #[async_trait]
