@@ -110,6 +110,25 @@ impl ParsedDocument {
             range.end.character as usize,
         )
     }
+    pub fn query<'a>(&'a self, node: &'a Node, query: &str) -> Vec<Node> {
+        let q = Query::new(&self.tree.language(), query);
+        if q.is_err() {
+            return Vec::default();
+        }
+        let q = q.unwrap();
+        let mut cursor = QueryCursor::new();
+        cursor.set_byte_range(node.byte_range());
+
+        let matches = cursor.matches(&q, *node, self.source.as_bytes());
+        let mut nodes = Vec::new();
+
+        for m in matches {
+            for capture in m.captures {
+                nodes.push(capture.node);
+            }
+        }
+        nodes
+    }
 
     pub fn find_first<'a>(&'a self, node: &'a Node, query: &str) -> Option<Node> {
         let q = Query::new(&self.tree.language(), query).unwrap();

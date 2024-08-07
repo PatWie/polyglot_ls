@@ -7,10 +7,10 @@ end
 
 local function extract_docstring(fn_node)
   local docstring = ""
-  local node = fn_node:prev()
+  local node = fn_node:prev_sibling()
   while node ~= nil and node:kind() == "comment" do
     docstring = active_doc:text_from_node(node) .. docstring
-    node = node:prev()
+    node = node:prev_sibling()
   end
 
   return docstring
@@ -94,11 +94,11 @@ Assistant: ]=====] })
       }
 
       -- collect docstrings
-      local p_node = fn_node:prev()
+      local p_node = fn_node:prev_sibling()
       while p_node ~= nil and p_node:kind() == "comment" do
         local range = p_node:range()
         ret.start_line = range.start_line
-        p_node = p_node:prev()
+        p_node = p_node:prev_sibling()
       end
       return ret
     end

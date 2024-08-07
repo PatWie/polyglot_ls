@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use tower_lsp::lsp_types::{Position, Range};
 use tree_sitter::{
     ffi::{
-        ts_node_is_null, ts_node_next_sibling, ts_node_parent, ts_node_prev_sibling, ts_node_type,
-        TSNode,
+        ts_node_child, ts_node_child_by_field_name, ts_node_child_count, ts_node_is_null,
+        ts_node_named_child, ts_node_named_child_count, ts_node_next_sibling, ts_node_parent,
+        ts_node_prev_sibling, ts_node_type, TSNode,
     },
     Node,
 };
@@ -45,6 +46,32 @@ impl UserData for LuaNode {
                 .unwrap();
             Result::Ok(s.to_string())
         });
+        methods.add_method("child_count", |_, node: &LuaNode, ()| {
+            let node: TSNode = node.0;
+            let pnode = unsafe { ts_node_child_count(node) };
+            Result::Ok(pnode)
+        });
+        methods.add_method("child", |_, node: &LuaNode, i: u32| {
+            let node: TSNode = node.0;
+            let pnode = unsafe { ts_node_child(node, i) };
+            match unsafe { ts_node_is_null(pnode) } {
+                true => Result::Ok(None),
+                false => Result::Ok(Some(LuaNode(pnode))),
+            }
+        });
+        methods.add_method("named_child_count", |_, node: &LuaNode, ()| {
+            let node: TSNode = node.0;
+            let pnode = unsafe { ts_node_named_child_count(node) };
+            Result::Ok(pnode)
+        });
+        methods.add_method("named_child", |_, node: &LuaNode, i: u32| {
+            let node: TSNode = node.0;
+            let pnode = unsafe { ts_node_named_child(node, i) };
+            match unsafe { ts_node_is_null(pnode) } {
+                true => Result::Ok(None),
+                false => Result::Ok(Some(LuaNode(pnode))),
+            }
+        });
         methods.add_method("parent", |_, node: &LuaNode, ()| {
             let node: TSNode = node.0;
             let pnode = unsafe { ts_node_parent(node) };
@@ -53,7 +80,7 @@ impl UserData for LuaNode {
                 false => Result::Ok(Some(LuaNode(pnode))),
             }
         });
-        methods.add_method("prev", |_, node: &LuaNode, ()| {
+        methods.add_method("prev_sibling", |_, node: &LuaNode, ()| {
             let node: TSNode = node.0;
             let pnode = unsafe { ts_node_prev_sibling(node) };
             match unsafe { ts_node_is_null(pnode) } {
@@ -67,12 +94,28 @@ impl UserData for LuaNode {
             let r: LuaRange = helper::ts_node_to_lsp_range(&node).into();
             Result::Ok(r)
         });
-        methods.add_method("next", |_, node: &LuaNode, ()| {
+        methods.add_method("next_sibling", |_, node: &LuaNode, ()| {
             let node: TSNode = node.0;
             let pnode = unsafe { ts_node_next_sibling(node) };
             match unsafe { ts_node_is_null(pnode) } {
                 true => Result::Ok(None),
                 false => Result::Ok(Some(LuaNode(pnode))),
+            }
+        });
+        methods.add_method("child_by_field_name", |_, node: &LuaNode, field_name: String| {
+            let node: TSNode = node.0;
+            let c_field_name = std::ffi::CString::new(field_name).unwrap();
+            let child_node = unsafe {
+                ts_node_child_by_field_name(
+                    node,
+                    c_field_name.as_ptr(),
+                    c_field_name.as_bytes().len() as u32,
+                )
+            };
+
+            match unsafe { ts_node_is_null(child_node) } {
+                true => Result::Ok(None),
+                false => Result::Ok(Some(LuaNode(child_node))),
             }
         });
     }
@@ -168,6 +211,16 @@ impl UserData for LuaDoc {
         methods.add_method("root", |_, doc: &LuaDoc, ()| -> Result<LuaNode> {
             Result::Ok(doc.0.tree.root_node().into())
         });
+        methods.add_method(
+            "query",
+            |_, active_doc: &LuaDoc, (node, query): (LuaNode, String)| -> Result<Vec<LuaNode>> {
+                let node: Node = node.into();
+                let found_nodes = active_doc.0.query(&node, &query);
+                let found_nodes: Vec<LuaNode> = found_nodes.into_iter().map(|n| n.into()).collect();
+
+                Result::Ok(found_nodes)
+            },
+        );
         methods.add_method(
             "query_first",
             |_, active_doc: &LuaDoc, (node, query): (LuaNode, String)| -> Result<Option<LuaNode>> {
