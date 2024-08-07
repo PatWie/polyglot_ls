@@ -1,54 +1,50 @@
 # Polyglot-LS
 
-The only sane way to integrate Large Language Models (LLMs) into *any* editor
-that supports the Language Server Protocol (LSP) is through a language server.
+The only sensible way to bring Large Language Models (LLMs) into any editor
+that speaks the Language Server Protocol (LSP).
 
 ![Polyglot-LS Preview](.github/preview.gif)
 
 Polyglot-LS is a language server written in Rust that embeds Lua scripting,
-which is responsible for creating prompts, post-processing LLM answers, and
-determining where to place the LLM output. It has access to the Tree-Sitter
-Abstract Syntax Tree (AST) and can walk nodes, form Tree-sitter queries.
+responsible for creating prompts, post-processing LLM answers, and determining
+where to place the LLM output. It has access to the Tree-Sitter Abstract Syntax
+Tree (AST) and can navigate nodes and form Tree-Sitter queries.
 
 ![Polyglot-LS Overview](.github/polyglot-ls-overview-scene.svg)
 
-## Usecases
+## Some Use Cases
 
-To emphasize that point, using Lua scripting allows you to access any
-information from the current file in a structured way, and you are free to
-construct any string that will be used as a prompt for the language model. Here
-are some use cases from my perspective:
+Utilizing Lua scripting allows you to access structured information from the
+current file and construct any string for LLM prompts. Here are some practical
+use cases:
 
 ### Add Documentation
 
-Adding or updating docstrings to existing function implementations for various
-languages. This will not only provide context but also determine where to place
-these docstrings, allowing you to replace the documentation without touching
-the code.
+Automatically add or update docstrings for functions in various languages. This
+provides context and determines where to place these docstrings, enabling
+documentation updates without altering the code.
 
-### Adjust function signatures
+### Adjust Function Signatures
 
-Using tree-sitter, a code-action can extract context (function source, nearest
-class source, any TreeSitter node) to form prompts that can target other
-TreeSitter nodes, like parameter lists of functions, which should be
-substituted with LLM outputs.
+Using tree-sitter, a code-action can extract context from various parts of your
+code, such as the function source, the nearest class source, or any specific
+Tree-Sitter node. This allows you to form prompts that target other Tree-Sitter
+nodes, such as parameter lists of functions or other code segments, which can
+then be substituted with LLM outputs. This provides you with full control over
+which parts of the code remain untouched, ensuring precise and targeted
+modifications.
 
-### Chat locally
+### Chat Locally
 
-Engage in conversations with large language models (LLMs) by using Markdown
-files. When you select your prompt, all the previous text will be used as
-context, and the model's response will be output below, potentially overriding
-everything below, similar to how web-based user interfaces (UIs) work when
-editing prompts.
+Engage with LLMs using Markdown files. When you select your prompt, all
+previous text is used as context, and the model's response is output below,
+similar to web-based UIs.
 
-Or ask in any file via a prompt.
-
-
-**For Neovim users:**, you can combine this with fuzzy-finding of all `.md`
-files in a specific directory:
+For Neovim users, combine this with fuzzy-finding of all `.md` files in a
+specific directory:
 
 ```lua
-vim.keymap.set("n", "<leader>cn", function()
+vim.keymap.set("n", "<leader>cc", function()
   builtin.find_files({
     prompt_title = "< Chats >",
     cwd = "$HOME/.chats/",
@@ -56,16 +52,14 @@ vim.keymap.set("n", "<leader>cn", function()
 end)
 ```
 
-This, combined with [undotree](https://github.com/mbbill/undotree), provides a
-powerful history feature and quick access to different chats.
+Pair this with [undotree](https://github.com/mbbill/undotree) for powerful
+history features and quick access to different chats.
 
+### Fix Typos
 
-### Fix typos
-
-While you have access to tree-sitter information, you can use ranges to fix the
-wording of selected text. This includes git commit messages when using your
-editor to write them.
-
+Use tree-sitter information to fix selected text wording, including Git commit
+messages written in your editor. Or even reformulate entire Git commit
+messages.
 
 See [configs](./config/code_actions/) for examples.
 
@@ -73,15 +67,13 @@ See [configs](./config/code_actions/) for examples.
 
 ### Prerequisites
 
-- **Rust**: Ensure you have Rust installed. If not, install it from [the
-  official Rust website](https://www.rust-lang.org/tools/install).
-- **AWS Profile**: Create an AWS profile named `my-aws-bedrock` to get the
-  correct credentials for using the Bedrock
-  `anthropic.claude-3-haiku-20240307-v1:0` model.
+- **Rust**: Install Rust from the [official Rust
+  website](https://www.rust-lang.org/tools/install).
+- **AWS Profile**: Create an AWS profile named `my-aws-bedrock` to obtain
+  credentials for using the Bedrock `anthropic.claude-3-haiku-20240307-v1:0`
+  model.
 
 ### Compilation
-
-To compile the project, follow these steps:
 
 1. Clone the repository:
 
@@ -103,19 +95,19 @@ To compile the project, follow these steps:
 1. Copy the contents of the `code_actions` configs directory to
    `$HOME/.config/polyglot_ls/code_actions/`.
 
-2. To run the server, execute:
+2. Run the server:
 
    ```sh
    ./target/release/polyglot_ls
    ```
 
-   For debugging, use:
+   For debugging:
 
    ```sh
    ./target/release/polyglot_ls --listen
    ```
 
-   For direct usage in Neovim, use:
+   For direct usage in Neovim:
 
    ```sh
    ./target/release/polyglot_ls --stdin
@@ -123,14 +115,12 @@ To compile the project, follow these steps:
 
 ## Limitations
 
-The following are not hard limitations, but rather practical choices:
-
-- This project only supports the AWS Bedrock model (no ChatGPT, no Ollama).
+- Currently supports only the AWS Bedrock model (no ChatGPT, no Ollama).
 - Many settings are hard-coded (e.g., the used model).
 
 ## Integration
 
-For Neovim and the "neovim/nvim-lspconfig" plugin, use the following setup:
+For Neovim with the "neovim/nvim-lspconfig" plugin, use the following setup:
 
 ```lua
 local configs = require 'lspconfig.configs'

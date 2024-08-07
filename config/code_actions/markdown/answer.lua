@@ -1,5 +1,5 @@
 local M = {
-  is_triggered = function(selection_range)
+  is_triggered = function(lsp_range)
     return true
   end,
 
@@ -7,18 +7,18 @@ local M = {
     return "Answer"
   end,
 
-  process_answer = function(text, selection_range)
-    return "\n## Assistant\n\n" .. text .. "\n\n## Human \n\n"
+  process_answer = function(llm_response, lsp_range)
+    return "\n## Assistant\n\n" .. llm_response .. "\n\n## Human \n\n"
   end,
 
-  create_prompt = function(selection_range)
+  create_prompt = function(lsp_range)
     local previous_text = active_doc:text_from_range({
       start_line = 0,
       start_character = 0,
-      end_line = selection_range.start_line,
+      end_line = lsp_range.start_line,
       end_character = 0,
     })
-    local question_text = active_doc:text_from_range(selection_range)
+    local question_text = active_doc:text_from_range(lsp_range)
     local prompt = table.concat({
       [=====[ Human:
 <context> ]=====], previous_text, [=====[ </context>
@@ -31,11 +31,11 @@ Assistant: ]=====] })
     return prompt
   end,
 
-  placement_range = function(selection_range)
+  placement_range = function(lsp_range)
     local doc_range = active_doc:root():range()
     -- place after
     return {
-      start_line = selection_range.end_line + 1,
+      start_line = lsp_range.end_line + 1,
       start_character = 0,
       end_line = doc_range.end_line,
       end_character = doc_range.end_character,

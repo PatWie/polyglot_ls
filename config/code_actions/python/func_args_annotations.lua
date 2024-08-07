@@ -17,20 +17,20 @@ end
 
 
 return {
-  is_triggered = function(selection_range)
-    return find_specific_node(selection_range, "function_definition") ~= nil
+  is_triggered = function(lsp_range)
+    return find_specific_node(lsp_range, "function_definition") ~= nil
   end,
 
   action_name = function()
     return "Update Function Args Type Annotations"
   end,
 
-  process_answer = function(text, selection_range)
-    return "(" .. text .. ")"
+  process_answer = function(llm_response, lsp_range)
+    return "(" .. llm_response .. ")"
   end,
 
-  create_prompt = function(selection_range)
-    local fn_node = find_specific_node(selection_range, "function_definition")
+  create_prompt = function(lsp_range)
+    local fn_node = find_specific_node(lsp_range, "function_definition")
     if fn_node ~= nil then
       local function_text = active_doc:text_from_node(fn_node)
       local args_node = active_doc:query_first(fn_node, [[(function_definition
@@ -77,8 +77,8 @@ Assistant: ]=====] })
     end
   end,
 
-  placement_range = function(selection_range)
-    local fn_node = find_specific_node(selection_range, "function_definition")
+  placement_range = function(lsp_range)
+    local fn_node = find_specific_node(lsp_range, "function_definition")
     local args_node = active_doc:query_first(fn_node, [[(function_definition
             parameters: (parameters) @parameters)]])
     return args_node:range()

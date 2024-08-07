@@ -17,8 +17,8 @@ local function extract_docstring(fn_node)
 end
 
 return {
-  is_triggered = function(selection_range)
-    local cursor_node = active_doc:node_from_range(selection_range)
+  is_triggered = function(lsp_range)
+    local cursor_node = active_doc:node_from_range(lsp_range)
     if cursor_node == nil then
       return false
     end
@@ -29,12 +29,12 @@ return {
     return "Update Docstring"
   end,
 
-  process_answer = function(text, selection_range)
-    return text .. "\n"
+  process_answer = function(llm_response, lsp_range)
+    return llm_response .. "\n"
   end,
 
-  create_prompt = function(selection_range)
-    local cursor_node = active_doc:node_from_range(selection_range)
+  create_prompt = function(lsp_range)
+    local cursor_node = active_doc:node_from_range(lsp_range)
     if cursor_node == nil then
       return nil
     end
@@ -77,8 +77,8 @@ Assistant: ]=====] })
     end
   end,
 
-  placement_range = function(selection_range)
-    local start_node = active_doc:node_from_range(selection_range)
+  placement_range = function(lsp_range)
+    local start_node = active_doc:node_from_range(lsp_range)
     if start_node == nil then
       return nil
     end

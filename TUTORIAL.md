@@ -1,65 +1,74 @@
 # Configuration Tutorial
 
-## Lua
+## Lua Configuration
 
-Each behavior is implemented in Lua with the function
+Each behavior is implemented in Lua using the following structure:
 
 ```lua
 local M = {
--- range -> bool
--- can code-action be used in the current selection?
-  is_triggered = function(selected_code_range)
+  --- Determines if the code-action can be used in the current selection.
+  -- @param lsp_range Range: The current selection or cursor position from the editor frontend via LSP.
+  -- @return boolean: True if the code-action can be used, otherwise false.
+  is_triggered = function(lsp_range)
     return true
   end,
 
--- void -> string
--- name of code-action
-  action_name = function()
+  --- Returns the name of the code-action.
+  -- @return string: The name of the code-action.
+  get_action_name = function()
     return "Improve Wording"
   end,
 
--- string, range -> string
--- post-process any LLM answer
-  process_answer = function(llm_answer, selected_code_range)
-    return llm_answer
+  --- Post-processes any LLM reponse.
+  -- @param llm_response string: The answer from the LLM.
+  -- @param lsp_range Range: The current selection or cursor position from the editor frontend via LSP.
+  -- @return string: The post-processed LLM answer.
+  process_answer = function(llm_response, lsp_range)
+    return llm_response
   end,
 
--- range -> string
--- create a prompt string for the llm
-  create_prompt = function(selected_code_range)
-    local select_text = active_doc:text_from_range(selected_code_range)
+  --- Creates a prompt string for the LLM.
+  -- @param lsp_range Range: The current selection or cursor position from the editor frontend via LSP.
+  -- @return string: The prompt string for the LLM.
+  create_prompt = function(lsp_range)
+    local selected_text = active_doc:text_from_range(lsp_range)
     return table.concat({
-      [=====[ Human:
+      [=====[
+      Human:
       Improve the wording, fix grammar and typos. DO NOT output anything else. Just the improved text. No explanation.
-]=====], select_text, [=====[
-Assistant: ]=====] })
+]=====], selected_text, [=====[
+Assistant: ]=====]
+    })
   end,
 
--- range -> range
--- where to place the post-processed llm-answer
-  placement_range = function(selected_code_range)
-    return selected_code_range
+  --- Determines where to place the post-processed LLM answer.
+  -- @param lsp_range Range: The current selection or cursor position from the editor frontend via LSP.
+  -- @return Range: The range where the post-processed LLM answer should be placed.
+  get_placement_range = function(lsp_range)
+    return lsp_range
   end
 }
 
 return M
 ```
 
-Best is to inspect some existing code-actions, e.g., those [code actions for
-rust](./config/code_actions/rust).
+It is recommended to inspect some existing code-actions for better
+understanding, such as those for [Rust](./config/code_actions/rust).
 
-## YAML
+## YAML Configuration
 
-Behavior can be configured in YAML. This approach may be simpler, but it also
-has limitations in terms of functionality. I recommend using Lua instead. Let's
-start by adding a function to add a docstring to a Python function.
+Behavior can also be configured in YAML. This approach is simpler but offers
+limited functionality compared to Lua. Below is an example to add a docstring
+to a Python function.
+
+### Example Python Function
 
 ```python
 def add(a, b):
     return a + b
 ```
 
-We want the output:
+### Desired Output
 
 ```python
 def add(a, b):
@@ -81,71 +90,76 @@ def add(a, b):
     return a + b
 ```
 
-To add such functionality, we first need to specify the trigger. Open the
-[Tree-sitter Playground](https://tree-sitter.github.io/tree-sitter/playground)
-and place the code above. According to the playground, this code action should
-be enabled whenever the cursor is within a `function_definition` node.
+### Configuration Steps
 
-```yaml
-triggers:
-  - kind: function_definition
-    relation: findup
-```
+1. **Specify the Trigger**:
+   Using the [Tree-sitter
+   Playground](https://tree-sitter.github.io/tree-sitter/playground), determine
+   that this code action should be enabled whenever the cursor is within a
+   `function_definition` node.
 
-This will start in the current node under the cursor and traverse the AST up
-until the first `function_definition` node. If no such node is found, the
-action will be disabled.
+   ```yaml
+   triggers:
+     - kind: function_definition
+       relation: findup
+   ```
 
-To form a prompt, we also want to inform the LLM about some _context_ for the
-action. In this case, we use the entire function (we could also use the entire
-source code via `kind=module`).
+   This configuration starts at the current node under the cursor and traverses
+   the AST up until the first `function_definition` node is found. If no such
+   node is found, the action is disabled.
 
-```yaml
-context:
-  kind: function_definition
-  relation: findup # findup | exact
-  hints:
-    - name: FUNCTION_CONTEXT
-      query: ((function_definition) @function)
-```
+2. **Form the Prompt**:
+   Provide context to the LLM by using the entire function. Context can be more
+   comprehensive, such as using the entire source code.
 
-This is the start node to extract hints, like parameters, function body, and so
-on, which can be interpolated into the prompt. In our case, we use the entire
-function as a query. Those query results will interpolated into the the
-prompt-template as a hint:
+   ```yaml
+   context:
+     kind: function_definition
+     relation: findup # findup | exact
+     hints:
+       - name: FUNCTION_CONTEXT
+         query: ((function_definition) @function)
+   ```
 
-```yaml
-prompt_template: |
-  Do this or that for <<<FUNCTION_CONTEXT>>>
-```
+   This sets the start node to extract hints (like parameters and function
+   body) to be interpolated into the prompt.
 
-The answer from the LLM might need some post-processing (e.g., adding
-brackets), which can be configured via an optional `answer_template`:
+3. **Define the Prompt Template**:
+   Use the extracted hints in the prompt template.
 
-```yaml
-answer_template: "{<<ANSWER>>>}"
-```
+   ```yaml
+   prompt_template: |
+     Generate a comprehensive docstring for the following function: <<<FUNCTION_CONTEXT>>>
+   ```
 
-The last piece is to tell the front-end where the answer should be placed. This
-is a list of possible tree-sitter queries, which are walked in order, and
-the first captured match will determine the target range. For Python functions,
-we first want to try replacing the existing docstring. If this is not possible,
-we will add a new docstring (before the function body).
+4. **Post-process the Answer**:
+   Optionally post-process the LLM's answer using an `answer_template`.
 
-```yaml
-placement_strategies:
-  # Try to find the docstring node
-  - query: |
-      (function_definition
-        body: (block
-          (expression_statement
-            (string) @docstring)))
-    position: replace_block
-  # If not existent, find the body node and place it before
-  - query: |
-      (function_definition
-        body: (block) @body)
-    position: before
-```
+   ```yaml
+   answer_template: "{<<ANSWER>>>}"
+   ```
 
-See the `config/code_actions/` directory for more examples.
+5. **Determine the Placement**:
+   Specify where the processed answer should be placed using tree-sitter
+   queries. For Python functions, try replacing the existing docstring first,
+   then add a new docstring if none exists.
+
+   ```yaml
+   placement_strategies:
+     # Try to find the docstring node
+     - query: |
+         (function_definition
+           body: (block
+             (expression_statement
+               (string) @docstring)))
+       position: replace_block
+     # If not existent, find the body node and place it before
+     - query: |
+         (function_definition
+           body: (block) @body)
+       position: before
+   ```
+
+Refer to the `config/code_actions/` directory for more examples.
+
+

@@ -28,33 +28,33 @@ local function find_body(fn_node)
 end
 
 return {
-  is_triggered = function(selection_range)
-    return find_specific_node(selection_range, "function_definition") ~= nil
+  is_triggered = function(lsp_range)
+    return find_specific_node(lsp_range, "function_definition") ~= nil
   end,
 
   action_name = function()
     return "Update Function Docstring"
   end,
 
-  process_answer = function(text, selection_range)
-    local fn_node = find_specific_node(selection_range, "function_definition")
+  process_answer = function(llm_response, lsp_range)
+    local fn_node = find_specific_node(lsp_range, "function_definition")
 
     local doc_node = find_docstring(fn_node)
     if doc_node ~= nil then
       -- Indent with docstring indentation
       local r = doc_node:range()
-      return helper.trim_suffix(helper.indent_text(text, r.start_character), "\n")
+      return helper.trim_suffix(helper.indent_text(llm_response, r.start_character), "\n")
     end
 
     -- Indent with body node indentation
     local body_node = find_body(fn_node)
     local r = body_node:range()
     -- As we insert a new content, we need to add a newline.
-    return helper.indent_text(text, r.start_character)
+    return helper.indent_text(llm_response, r.start_character)
   end,
 
-  create_prompt = function(selection_range)
-    local fn_node = find_specific_node(selection_range, "function_definition")
+  create_prompt = function(lsp_range)
+    local fn_node = find_specific_node(lsp_range, "function_definition")
     if fn_node ~= nil then
       local function_text = active_doc:text_from_node(fn_node)
       print(function_text)
@@ -117,8 +117,8 @@ Assistant: ]=====] })
     end
   end,
 
-  placement_range = function(selection_range)
-    local fn_node = find_specific_node(selection_range, "function_definition")
+  placement_range = function(lsp_range)
+    local fn_node = find_specific_node(lsp_range, "function_definition")
     if fn_node == nil then
       return nil
     end

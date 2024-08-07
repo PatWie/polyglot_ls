@@ -1,5 +1,5 @@
 local M = {
-  is_triggered = function(selection_range)
+  is_triggered = function(lsp_range)
     return true
   end,
 
@@ -7,12 +7,12 @@ local M = {
     return "Write Code"
   end,
 
-  process_answer = function(text, selection_range)
-    return text
+  process_answer = function(llm_response, lsp_range)
+    return llm_response
   end,
 
-  create_prompt = function(selection_range)
-    local prompt_text = active_doc:text_from_range(selection_range)
+  create_prompt = function(lsp_range)
+    local prompt_text = active_doc:text_from_range(lsp_range)
 
 
     return table.concat({
@@ -25,8 +25,8 @@ local M = {
 Assistant: ]=====] })
   end,
 
-  placement_range = function(selection_range)
-    return selection_range
+  placement_range = function(lsp_range)
+    return lsp_range
   end
 }
 

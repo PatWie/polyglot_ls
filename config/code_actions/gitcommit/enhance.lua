@@ -1,4 +1,3 @@
-
 local prompt = [[
 
 Please take the following unstructured draft text, which may contain typos and unclear phrasing,
@@ -19,7 +18,7 @@ to the following rules:
 ]]
 
 local M = {
-  is_triggered = function(selection_range)
+  is_triggered = function(lsp_range)
     return true
   end,
 
@@ -27,11 +26,11 @@ local M = {
     return "Improve Git Message"
   end,
 
-  process_answer = function(text, selection_range)
-    return text
+  process_answer = function(llm_response, lsp_range)
+    return llm_response
   end,
 
-  create_prompt = function(selection_range)
+  create_prompt = function(lsp_range)
     local git_draft_message = active_doc:text_from_range(active_doc:root():range())
     return table.concat({
       [[ Human:
@@ -44,7 +43,7 @@ Here is the unstructured draft text:
 Assistant: ]] })
   end,
 
-  placement_range = function(selection_range)
+  placement_range = function(lsp_range)
     return active_doc:root():range()
   end
 }
