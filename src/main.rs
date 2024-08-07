@@ -20,7 +20,7 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-const SUPPORTED_LANGUAGES: [&str; 6] = ["rust", "python", "text", "go", "__all__", "markdown"];
+const SUPPORTED_LANGUAGES: [&str; 7] = ["rust", "python", "text", "go", "__all__", "markdown", "gitcommit"];
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResolveActionKind {
