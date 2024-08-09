@@ -10,14 +10,13 @@ use tower_lsp::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
 use crate::code_action_providers::parsed_document::ParsedDocument;
 use crate::code_action_providers::traits::ActionContext;
 use crate::code_action_providers::traits::ActionProvider;
-use crate::prompt_handlers::claude::BedrockConverse;
-use crate::prompt_handlers::traits::PromptHandler;
+use crate::prompt_handlers::traits::LLM;
 use crate::ResolveAction;
 
 use super::lua_jit::LuaInterface;
 
 pub struct LuaProvider {
-    prompt_handler: Arc<BedrockConverse>,
+    prompt_handler: Arc<LLM>,
     lua_source: String,
     id: String,
 }
@@ -33,7 +32,7 @@ pub enum LuaProviderError {
 impl LuaProvider {
     pub fn try_new(
         file_name: &str,
-        prompt_handler: Arc<BedrockConverse>,
+        prompt_handler: Arc<LLM>,
     ) -> anyhow::Result<Self, LuaProviderError> {
         Ok(Self {
             prompt_handler,
@@ -73,7 +72,11 @@ impl ActionProvider for LuaProvider {
         }
         //log::info!("prompt {}", prompt);
         //log::info!("range {:?}", range);
-        let mut new_text: String = self.prompt_handler.answer(&prompt).await.unwrap();
+        let new_text = self.prompt_handler.answer(&prompt).await;
+        if new_text.is_err() {
+            return Err(Error::request_cancelled());
+        }
+        let mut new_text = new_text.unwrap();
         {
             //log::info!("answer {}", new_text);
             let lua = self.create_lua_interface(doc);

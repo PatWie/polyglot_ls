@@ -5,7 +5,8 @@ use code_action_providers::parsed_document::ParsedDocument;
 use code_action_providers::traits::ActionProvider;
 use code_action_providers::yaml_provider::YamlProvider;
 use nonsense::TextAdapter;
-use prompt_handlers::claude::BedrockConverse;
+use prompt_handlers::bedrock::BedrockConverse;
+use prompt_handlers::traits::LLM;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
@@ -374,11 +375,11 @@ async fn main() {
 
     tracing_subscriber::fmt().init();
     //log::info!("Start");
-    let prompt_handler = Arc::new(
+    let prompt_handler = Arc::new(LLM::Bedrock(
         BedrockConverse::new(&polyglot_config.model.bedrock)
             .await
             .unwrap(),
-    );
+    ));
     let mut providers: HashMap<String, Vec<Box<dyn ActionProvider>>> = Default::default();
 
     //log::info!("Processing  config-dir: {:?}", config_dir);

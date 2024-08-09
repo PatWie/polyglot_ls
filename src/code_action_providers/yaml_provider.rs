@@ -10,8 +10,7 @@ use tower_lsp::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
 use crate::code_action_providers::traits::ActionContext;
 use crate::code_action_providers::traits::ActionProvider;
 use crate::code_action_providers::{helper, parsed_document::ParsedDocument};
-use crate::prompt_handlers::claude::BedrockConverse;
-use crate::prompt_handlers::traits::PromptHandler;
+use crate::prompt_handlers::traits::LLM;
 use crate::ResolveAction;
 
 use super::config;
@@ -25,18 +24,14 @@ fn build_prompt(template: &str, hints: &HashMap<String, String>) -> String {
 }
 
 pub struct YamlProvider {
-    prompt_handler: Arc<BedrockConverse>,
+    prompt_handler: Arc<LLM>,
 
     config: config::CodeAction,
     id: String,
 }
 
 impl YamlProvider {
-    pub fn from_config(
-        config: config::CodeAction,
-        id: &str,
-        prompt_handler: Arc<BedrockConverse>,
-    ) -> Self {
+    pub fn from_config(config: config::CodeAction, id: &str, prompt_handler: Arc<LLM>) -> Self {
         Self {
             prompt_handler,
             config,
