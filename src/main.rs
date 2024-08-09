@@ -1,3 +1,4 @@
+use clap::{ArgGroup, Parser};
 use code_action_providers::config;
 use code_action_providers::lua_provider::LuaProvider;
 use code_action_providers::parsed_document::ParsedDocument;
@@ -20,7 +21,15 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-const SUPPORTED_LANGUAGES: [&str; 7] = ["rust", "python", "text", "go", "__all__", "markdown", "gitcommit"];
+const SUPPORTED_LANGUAGES: [&str; 7] = [
+    "rust",
+    "python",
+    "text",
+    "go",
+    "__all__",
+    "markdown",
+    "gitcommit",
+];
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResolveActionKind {
@@ -314,6 +323,31 @@ fn read_language_config_files(config_dir: &Path, filter: &str) -> Vec<PathBuf> {
     }
     config_files
 }
+// https://github.com/microsoft/vscode-languageserver-node/blob/0cb3812e7d540ef3a904e96df795bc37a21de9b0/client/src/node/main.ts#L378-L387
+#[derive(Parser)]
+#[command(
+    name = "polyglot_ls",
+    version = "1.0",
+    about = "An LLM-based lsp with lua scription and tree-sitter context"
+)]
+#[command(group(
+    ArgGroup::new("input")
+        .required(true)
+        .args(&["socket", "stdio", "bind"]),
+))]
+struct Args {
+    /// Socket the LSP server will listen on
+    #[arg(long)]
+    socket: Option<u16>, // Option to allow it to be optional
+
+    /// Socket the LSP server will bind on
+    #[arg(long)]
+    bind: Option<u16>, // Option to allow it to be optional
+
+    /// LSP server will read input from stdin
+    #[arg(long)]
+    stdio: bool, // Just a flag, no value needed
+}
 
 #[tokio::main]
 async fn main() {
@@ -373,42 +407,41 @@ async fn main() {
         indexed_text: Arc::new(RwLock::new(nonsense::IndexedText::new("".to_owned()))),
     });
 
-    let mut args = std::env::args();
-    match args.nth(1).as_deref() {
-        None => {
-            // If no argument is supplied (args is just the program name), then
-            // we presume that the client has opened the TCP port and is waiting
-            // for us to connect. This is the connection pattern used by clients
-            // built with vscode-langaugeclient.
-            let stream = TcpStream::connect("127.0.0.1:9257").await.unwrap();
-            let (read, write) = tokio::io::split(stream);
-            #[cfg(feature = "runtime-agnostic")]
-            let (read, write) = (read.compat(), write.compat_write());
+    let args = Args::parse();
 
-            Server::new(read, write, socket).serve(service).await;
-        }
-        Some("--stdin") => {
-            let (stdin, stdout) = (tokio::io::stdin(), tokio::io::stdout());
-            #[cfg(feature = "runtime-agnostic")]
-            let (stdin, stdout) = (stdin.compat(), stdout.compat_write());
+    if let Some(port) = args.socket {
+        // If no argument is supplied (args is just the program name), then
+        // we presume that the client has opened the TCP port and is waiting
+        // for us to connect. This is the connection pattern used by clients
+        // built with vscode-langaugeclient.
+        let stream = TcpStream::connect(format!("127.0.0.1:{port}"))
+            .await
+            .unwrap();
 
-            Server::new(stdin, stdout, socket).serve(service).await;
-        }
-        Some("--listen") => {
-            // If the `--listen` argument is supplied, then the roles are
-            // reversed: we need to start a server and wait for the client to
-            // connect.
-            let listener = TcpListener::bind("127.0.0.1:9257").await.unwrap();
-            let (stream, _) = listener.accept().await.unwrap();
-            let (read, write) = tokio::io::split(stream);
-            #[cfg(feature = "runtime-agnostic")]
-            let (read, write) = (read.compat(), write.compat_write());
+        let (read, write) = tokio::io::split(stream);
+        #[cfg(feature = "runtime-agnostic")]
+        let (read, write) = (read.compat(), write.compat_write());
 
-            Server::new(read, write, socket).serve(service).await;
-        }
-        Some(arg) => panic!(
-            "Unrecognized argument: {}. Use --listen to listen for connections or --stdin to use stdin.",
-            arg
-        ),
-    };
+        Server::new(read, write, socket).serve(service).await;
+    } else if args.stdio {
+        let (stdin, stdout) = (tokio::io::stdin(), tokio::io::stdout());
+        #[cfg(feature = "runtime-agnostic")]
+        let (stdin, stdout) = (stdin.compat(), stdout.compat_write());
+        Server::new(stdin, stdout, socket).serve(service).await;
+    } else if let Some(port) = args.bind {
+        // If the `--bind` argument is supplied, then the roles are
+        // reversed: we need to start a server and wait for the client to
+        // connect.
+        let listener = TcpListener::bind(format!("127.0.0.1:{port}"))
+            .await
+            .unwrap();
+        let (stream, _) = listener.accept().await.unwrap();
+        let (read, write) = tokio::io::split(stream);
+        #[cfg(feature = "runtime-agnostic")]
+        let (read, write) = (read.compat(), write.compat_write());
+
+        Server::new(read, write, socket).serve(service).await;
+    } else {
+        println!("No input method specified");
+    }
 }

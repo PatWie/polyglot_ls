@@ -92,25 +92,24 @@ See [configs](./config/code_actions/) for examples.
 
 ### Using the Language Server
 
-1. Copy the contents of the `code_actions` configs directory to
+1. Copy or symlink the contents of the `code_actions` configs directory to
    `$HOME/.config/polyglot_ls/code_actions/`.
+
+    ```sh
+    mkdir -p ${HOME}/.config/polyglot_ls
+    ln -s $(realpath config/code_actions) ${HOME}/.config/polyglot_ls/code_actions
+    ```
 
 2. Run the server:
 
    ```sh
-   ./target/release/polyglot_ls
-   ```
-
-   For debugging:
-
-   ```sh
-   ./target/release/polyglot_ls --listen
+   ./target/release/polyglot_ls --socket=9257
    ```
 
    For direct usage in Neovim:
 
    ```sh
-   ./target/release/polyglot_ls --stdin
+   ./target/release/polyglot_ls --stdio
    ```
 
 ## Limitations
@@ -128,8 +127,8 @@ local configs = require 'lspconfig.configs'
 if not configs.polyglot_ls then
     configs.polyglot_ls = {
       default_config = {
-        cmd = { "/path/to/polyglot_ls" , "--stdin" },
-        -- for debugging, launch "polyglot_ls" with --listen and use:
+        cmd = { "/path/to/polyglot_ls" , "--stdio" },
+        -- for debugging, launch "polyglot_ls" with --bind=9257 and use:
         -- cmd = vim.lsp.rpc.connect('127.0.0.1', 9257),
         filetypes = { 'python', 'rust', 'text', 'go', 'gitcommit', 'markdown' },
         single_file_support = true,

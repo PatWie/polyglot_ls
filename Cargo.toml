@@ -32,3 +32,4 @@ thiserror = "1.0.63"
 lsp-types = "0.97.0"
 tree-sitter-cpp = "0.22.3"
 tree-sitter-go = "0.21.0"
+clap = { version = "4.5.14", features = ["derive"] }
