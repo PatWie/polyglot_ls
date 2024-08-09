@@ -1,29 +1,31 @@
-use aws_config::BehaviorVersion;
+use aws_config::{BehaviorVersion, Region};
 use aws_sdk_bedrockruntime::{
     operation::converse::{ConverseError, ConverseOutput},
     types::{ContentBlock, ConversationRole, Message},
     Client,
 };
 
+use crate::configuration::BedrockConfig;
+
 use super::traits::PromptHandler;
 
 // Set the model ID, e.g., Claude 3 Haiku.
-const MODEL_ID: &str = "anthropic.claude-3-haiku-20240307-v1:0";
-const CLAUDE_REGION: &str = "us-east-1";
-const AWS_PROFILE: &str = "my-aws-bedrock";
+// const MODEL_ID: &str = "anthropic.claude-3-haiku-20240307-v1:0";
+// const CLAUDE_REGION: &str = "us-east-1";
+// const AWS_PROFILE: &str = "my-aws-bedrock";
 // Start a conversation with the user message.
 
 #[derive(Debug)]
 pub struct BedrockConverse {
     client: Client,
-    model_id: &'static str,
+    model_id: String,
 }
 
 impl BedrockConverse {
-    pub async fn new() -> Result<Self, BedrockConverseError> {
+    pub async fn new(config: &BedrockConfig) -> Result<Self, BedrockConverseError> {
         let sdk_config = aws_config::defaults(BehaviorVersion::latest())
-            .region(CLAUDE_REGION)
-            .profile_name(AWS_PROFILE)
+            .region(Region::new(config.region.clone()))
+            .profile_name(config.aws_profile.clone())
             .load()
             .await;
 
@@ -31,7 +33,7 @@ impl BedrockConverse {
 
         Ok(BedrockConverse {
             client,
-            model_id: MODEL_ID,
+            model_id: config.model_id.clone(),
         })
     }
 }
@@ -43,7 +45,7 @@ impl PromptHandler for BedrockConverse {
         let response = self
             .client
             .converse()
-            .model_id(self.model_id)
+            .model_id(&self.model_id)
             .messages(
                 Message::builder()
                     // .role(ConversationRole::Assistant)
@@ -71,7 +73,7 @@ pub struct BedrockConverseError(String);
 
 impl std::fmt::Display for BedrockConverseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Can't invoke '{}'. Reason: {}", MODEL_ID, self.0)
+        write!(f, "Can't invoke model. Reason: {}", self.0)
     }
 }
 

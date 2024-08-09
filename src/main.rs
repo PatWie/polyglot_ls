@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 pub mod code_action_providers;
+pub mod configuration;
 pub mod nonsense;
 pub mod prompt_handlers;
 
@@ -344,23 +345,41 @@ struct Args {
     #[arg(long)]
     bind: Option<u16>, // Option to allow it to be optional
 
-    /// LSP server will read input from stdin
+    /// LSP server will read input from stdin and reply in stdout
     #[arg(long)]
     stdio: bool, // Just a flag, no value needed
+
+    /// Path to polyglot configuration YAML file
+    #[arg(long)]
+    polyglot_config_path: Option<String>,
 }
 
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
     #[cfg(feature = "runtime-agnostic")]
     use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
-    tracing_subscriber::fmt().init();
-    //log::info!("Start");
-    let prompt_handler = Arc::new(BedrockConverse::new().await.unwrap());
-    let mut providers: HashMap<String, Vec<Box<dyn ActionProvider>>> = Default::default();
-
     let home_dir = env::var("HOME").expect("Failed to get home directory");
     let config_base_dir = Path::new(&home_dir).join(".config").join("polyglot_ls");
+
+    let polyglot_config_path = args.polyglot_config_path.unwrap_or(
+        config_base_dir
+            .join("server_config.yaml")
+            .to_string_lossy()
+            .to_string(),
+    );
+    let polyglot_config = configuration::PolyglotConfig::try_read_from_file(&polyglot_config_path)
+        .unwrap_or_default();
+
+    tracing_subscriber::fmt().init();
+    //log::info!("Start");
+    let prompt_handler = Arc::new(
+        BedrockConverse::new(&polyglot_config.model.bedrock)
+            .await
+            .unwrap(),
+    );
+    let mut providers: HashMap<String, Vec<Box<dyn ActionProvider>>> = Default::default();
 
     //log::info!("Processing  config-dir: {:?}", config_dir);
     for language in SUPPORTED_LANGUAGES {
@@ -381,7 +400,7 @@ async fn main() {
                             )));
                     }
                 }
-                Err(e) => {
+                Err(_e) => {
                     //log::warn!("Cannot read {:?} because of {}", &config_path, e);
                 }
             };
@@ -406,8 +425,6 @@ async fn main() {
         parsed_doc: ParsedDocument::new("", &Url::parse("http://example.com").unwrap(), ""),
         indexed_text: Arc::new(RwLock::new(nonsense::IndexedText::new("".to_owned()))),
     });
-
-    let args = Args::parse();
 
     if let Some(port) = args.socket {
         // If no argument is supplied (args is just the program name), then
