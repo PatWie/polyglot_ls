@@ -34,5 +34,5 @@ jobs:
         /tmp/polyglot_ls --version
 
         nvim --headless "+Lazy! update" +qa
-        #./tests/run_all.sh
-        #cat ~/.local/state/nvim/log
+        ./tests/run_all.sh
+        cat ~/.local/state/nvim/log
