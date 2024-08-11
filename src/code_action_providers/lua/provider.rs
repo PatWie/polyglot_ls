@@ -10,13 +10,14 @@ use tower_lsp::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
 use crate::code_action_providers::parsed_document::ParsedDocument;
 use crate::code_action_providers::traits::ActionContext;
 use crate::code_action_providers::traits::ActionProvider;
-use crate::prompt_handlers::traits::LLM;
-use crate::ResolveAction;
+use crate::llm_handlers::traits::Llm;
+use crate::server::ResolveAction;
 
-use super::lua_jit::LuaInterface;
+use super::bindings::LuaInterface;
+
 
 pub struct LuaProvider {
-    prompt_handler: Arc<LLM>,
+    prompt_handler: Arc<Llm>,
     lua_source: String,
     id: String,
 }
@@ -32,7 +33,7 @@ pub enum LuaProviderError {
 impl LuaProvider {
     pub fn try_new(
         file_name: &str,
-        prompt_handler: Arc<LLM>,
+        prompt_handler: Arc<Llm>,
     ) -> anyhow::Result<Self, LuaProviderError> {
         Ok(Self {
             prompt_handler,

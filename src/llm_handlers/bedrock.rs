@@ -8,7 +8,7 @@ use aws_sdk_bedrockruntime::{
 
 use crate::configuration::BedrockConfig;
 
-use super::traits::PromptHandler;
+use super::traits::LlmHandler;
 
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl BedrockConverse {
     }
 }
 
-impl PromptHandler for BedrockConverse {
+impl LlmHandler for BedrockConverse {
     async fn answer(&self, prompt: &str) -> anyhow::Result<String> {
         let response = self
             .client

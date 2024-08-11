@@ -1,8 +1,8 @@
-use super::traits::PromptHandler;
+use super::traits::LlmHandler;
 
 #[derive(Debug)]
 pub struct MockLLM {
-    answer: String,
+    pub answer: String,
 }
 
 impl MockLLM {
@@ -11,7 +11,7 @@ impl MockLLM {
     }
 }
 
-impl PromptHandler for MockLLM {
+impl LlmHandler for MockLLM {
     async fn answer(&self, _: &str) -> anyhow::Result<String> {
         Ok(self.answer.clone())
     }

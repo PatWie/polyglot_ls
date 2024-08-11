@@ -12,9 +12,7 @@ use tree_sitter::{
     Node,
 };
 
-use crate::code_action_providers::parsed_document::ParsedDocument;
-
-use super::helper;
+use crate::code_action_providers::{helper::ts_node_to_lsp_range, parsed_document::ParsedDocument};
 
 #[derive(Copy, Clone, Debug)]
 struct LuaNode(TSNode);
@@ -91,7 +89,7 @@ impl UserData for LuaNode {
         methods.add_method("range", |_, node: &LuaNode, ()| {
             let node: TSNode = node.0;
             let node: Node = unsafe { Node::from_raw(node) };
-            let r: LuaRange = helper::ts_node_to_lsp_range(&node).into();
+            let r: LuaRange = ts_node_to_lsp_range(&node).into();
             Result::Ok(r)
         });
         methods.add_method("next_sibling", |_, node: &LuaNode, ()| {
@@ -102,22 +100,25 @@ impl UserData for LuaNode {
                 false => Result::Ok(Some(LuaNode(pnode))),
             }
         });
-        methods.add_method("child_by_field_name", |_, node: &LuaNode, field_name: String| {
-            let node: TSNode = node.0;
-            let c_field_name = std::ffi::CString::new(field_name).unwrap();
-            let child_node = unsafe {
-                ts_node_child_by_field_name(
-                    node,
-                    c_field_name.as_ptr(),
-                    c_field_name.as_bytes().len() as u32,
-                )
-            };
+        methods.add_method(
+            "child_by_field_name",
+            |_, node: &LuaNode, field_name: String| {
+                let node: TSNode = node.0;
+                let c_field_name = std::ffi::CString::new(field_name).unwrap();
+                let child_node = unsafe {
+                    ts_node_child_by_field_name(
+                        node,
+                        c_field_name.as_ptr(),
+                        c_field_name.as_bytes().len() as u32,
+                    )
+                };
 
-            match unsafe { ts_node_is_null(child_node) } {
-                true => Result::Ok(None),
-                false => Result::Ok(Some(LuaNode(child_node))),
-            }
-        });
+                match unsafe { ts_node_is_null(child_node) } {
+                    true => Result::Ok(None),
+                    false => Result::Ok(Some(LuaNode(child_node))),
+                }
+            },
+        );
     }
 }
 
