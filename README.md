@@ -140,3 +140,18 @@ end
 ## Configuration Tutorial
 
 See the [Tutorial.md](./TUTORIAL.md).
+
+# Test Integration
+
+Prepare NVIM integration tests via
+
+```sh
+ln -s $(realpath editor_integrations/nvim/nvim-config) ${HOME}/.config/nvim-test
+NVIM_APPNAME=nvim-test nvim --headless "+Lazy! update" +qa
+```
+
+Then running
+
+```sh
+NVIM_APPNAME=nvim-test ./tests/run_all.sh
+```
