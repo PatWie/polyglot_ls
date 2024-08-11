@@ -1,0 +1,39 @@
+name: Rust Build and Nvim Integration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+
+    - uses: rhysd/action-setup-vim@v1
+      with:
+        neovim: true
+
+    # TODO(patwie): For some reason they fail in github workflow and but locally
+    # everything is fine.
+    - name: Run Tests
+      run: |
+        ln -s $(realpath editor_integrations/nvim/nvim-config) ${HOME}/.config/nvim
+        nvim --version
+        cp ./target/debug/polyglot_ls /tmp/polyglot_ls
+        /tmp/polyglot_ls --version
+
+        ls -lart  ${HOME}/.config/nvim
+        ls -lart  ${HOME}/.config/nvim/
+        nvim --headless "+Lazy! update" +qa
+        cd tests && ./run_all.sh
+        cat ~/.local/state/nvim-test/log

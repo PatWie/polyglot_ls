@@ -1,0 +1,3 @@
+def add(a, b):
+    MOCK
+    return a+b
