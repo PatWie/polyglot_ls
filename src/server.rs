@@ -158,35 +158,39 @@ impl LanguageServer for Backend {
 
         // LSP is UTF16, our abckend is UTF8
         let lsp_range = params.range;
-        let rs = index.lsp_range_to_range(&lsp_range).unwrap();
-        let fake_lsp_range = Range {
-            start: Position {
-                line: rs.start.line,
-                character: rs.start.col,
-            },
-            end: Position {
-                line: rs.end.line,
-                character: rs.end.col,
-            },
-        };
+        let rs = index.lsp_range_to_range(&lsp_range);
+        if let Some(rs) = rs {
+            let fake_lsp_range = Range {
+                start: Position {
+                    line: rs.start.line,
+                    character: rs.start.col,
+                },
+                end: Position {
+                    line: rs.end.line,
+                    character: rs.end.col,
+                },
+            };
 
-        let mut actions = vec![];
-        if let Some(language_specific_providers) = self.providers.get(&lang) {
-            for provider in language_specific_providers.iter() {
-                if let Some(action) = provider.create_code_action(&doc, &fake_lsp_range) {
-                    actions.push(CodeActionOrCommand::CodeAction(action));
+            let mut actions = vec![];
+            if let Some(language_specific_providers) = self.providers.get(&lang) {
+                for provider in language_specific_providers.iter() {
+                    if let Some(action) = provider.create_code_action(&doc, &fake_lsp_range) {
+                        actions.push(CodeActionOrCommand::CodeAction(action));
+                    }
                 }
             }
-        }
-        if let Some(language_specific_providers) = self.providers.get("__all__") {
-            for provider in language_specific_providers.iter() {
-                if let Some(action) = provider.create_code_action(&doc, &fake_lsp_range) {
-                    actions.push(CodeActionOrCommand::CodeAction(action));
+            if let Some(language_specific_providers) = self.providers.get("__all__") {
+                for provider in language_specific_providers.iter() {
+                    if let Some(action) = provider.create_code_action(&doc, &fake_lsp_range) {
+                        actions.push(CodeActionOrCommand::CodeAction(action));
+                    }
                 }
             }
-        }
 
-        Ok(Some(actions))
+            Ok(Some(actions))
+        } else {
+            Err(jsonrpc::Error::new(jsonrpc::ErrorCode::ServerError(1)))
+        }
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
