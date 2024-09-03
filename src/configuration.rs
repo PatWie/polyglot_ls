@@ -39,8 +39,7 @@ impl Default for PolyglotConfig {
 impl PolyglotConfig {
     pub fn default_file_path() -> PathBuf {
         let home_dir = env::var("HOME").unwrap_or_else(|_| ".".to_string());
-        let config_path = PathBuf::from(home_dir).join("./config/polyglot_ls.yaml");
-        config_path
+        PathBuf::from(home_dir).join(".config/polyglot_ls.yaml")
     }
 
     pub fn try_read_from_file<P: AsRef<Path>>(config_path: P) -> anyhow::Result<Self> {
@@ -48,10 +47,10 @@ impl PolyglotConfig {
             match fs::read_to_string(&config_path) {
                 Ok(config_data) => {
                     let cfg: PolyglotConfig = serde_yaml::from_str(&config_data)?;
-                    cfg
+                    return Ok(cfg);
                 }
                 Err(err) => anyhow::bail!(err),
-            };
+            }
         }
         anyhow::bail!("path does not exists")
     }
