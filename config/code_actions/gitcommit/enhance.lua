@@ -4,6 +4,7 @@ Please take the following unstructured draft text, which may contain typos and u
 and transform it into a clear, concise, and well-structured Git commit message according
 to the following rules:
 
+<instructions>
 1. Separate subject from body with a blank line
 2. Limit the subject line to 50 characters
 3. Capitalize the subject line
@@ -11,6 +12,7 @@ to the following rules:
 5. Use the imperative mood in the subject line
 6. Wrap the body at 72 characters
 7. Use the body to explain what and why vs. how
+</instructions>
 
 
 

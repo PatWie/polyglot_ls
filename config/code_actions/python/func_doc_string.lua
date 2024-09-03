@@ -65,14 +65,18 @@ return {
       Write a google style docstring for a given function. Here is an example
       for
 
+      <example>
+      <input>
         def fetch_smalltable_rows(
             table_handle: smalltable.Table,
             keys: Sequence[bytes | str],
             require_all_keys: bool = False,
         ) -> Mapping[bytes, tuple[str, ...]]:
+      </input>
 
       how it can look like
 
+      <output>
         """Fetch rows from a Smalltable.
 
         Retrieves rows pertaining to the given keys from the Table instance
@@ -104,6 +108,8 @@ return {
         Examples:
             >>> my_table = fetch_smalltable_rows(handle, ["id", "user"], True)
         """
+      </output>
+      </example>
 
       NEVER write anything else besides the docstring block. ONLY generate the docstring,
       It should include Args, Returns, Raise, Yield, Attributes, Notes, Example if necessary. First line must be in imperative mood. Do NOT output anything else after the docstring.

@@ -69,18 +69,22 @@ return {
       print(class_text)
 
       return table.concat({
-        [=====[ Human: ]=====], class_text, [=====[
+        [=====[ Human:
       Write a google style docstring for a given function. Here is an example
       for
 
+      <example>
+      <input>
         def fetch_smalltable_rows(
             table_handle: smalltable.Table,
             keys: Sequence[bytes | str],
             require_all_keys: bool = False,
         ) -> Mapping[bytes, tuple[str, ...]]:
+      </input>
 
       how it can look like
 
+      <output>
         """Fetch rows from a Smalltable.
 
         Retrieves rows pertaining to the given keys from the Table instance
@@ -112,14 +116,19 @@ return {
         Examples:
             >>> my_table = fetch_smalltable_rows(handle, ["id", "user"], True)
         """
+      </output>
+      </example>
 
-      NEVER write anything else besides the docstring block. ONLY generate the docstring,
       It should include Args, Returns, Raise, Yield, Attributes, Notes, Example if necessary. First line must be in imperative mood. Do NOT output anything else after the docstring.
       Update and correct the pre-existing docstring, parametern names or types might have changed. Wrap everything to 88 chars.
-      NEVER write back the initial code, JUST the docstring itself.
+      NEVER write back the initial code, JUST the docstring itself. Use the class_context to derive information.
+      NEVER write anything else besides the docstring block. ONLY generate the docstring,
 
-      Here is the task:
-<task> ]=====], function_text, [=====[
+      <task>
+        <class_context>]=====], class_text, [=====[
+        </class_context>
+      <input>]=====], function_text, [=====[
+</input>
 </task>
 Assistant: ]=====] })
     end
