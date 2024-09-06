@@ -4,9 +4,9 @@ use code_action_providers::parsed_document::ParsedDocument;
 use llm_handlers::bedrock::BedrockConverse;
 use llm_handlers::mock::MockLLM;
 use llm_handlers::traits::Llm;
-use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+use std::{env, io};
 
 pub mod code_action_providers;
 pub mod configuration;
@@ -53,7 +53,7 @@ fn read_language_config_files(config_dir: &Path, filter: &str) -> Vec<PathBuf> {
 #[command(group(
     ArgGroup::new("input")
         .required(true)
-        .args(&["socket", "stdio", "bind"]),
+        .args(&["socket", "stdio", "bind", "answer"]),
 ))]
 struct Args {
     /// Socket the LSP server will listen on
@@ -66,7 +66,11 @@ struct Args {
 
     /// LSP server will read input from stdin and reply in stdout
     #[arg(long)]
-    stdio: bool, // Just a flag, no value needed
+    stdio: bool, // Just a flag no value needed
+
+    /// LSP server will read prompt from stdin and reply in stdout
+    #[arg(long)]
+    answer: bool, // Just a flag no value needed
 
     /// Will consume text from stdin, code_action id and cursor position from the arg
     /// and return the alternated text to stdout.
@@ -96,7 +100,10 @@ async fn main() {
     let polyglot_config = configuration::PolyglotConfig::try_read_from_file(&polyglot_config_path)
         .unwrap_or_default();
 
-    tracing_subscriber::fmt().init();
+    if args.stdio || args.answer {
+    } else {
+        tracing_subscriber::fmt::init();
+    }
     //log::info!("Start");
     let prompt_handler;
 
@@ -110,6 +117,19 @@ async fn main() {
                 .await
                 .unwrap(),
         ));
+    }
+    if args.answer {
+        let mut prompt = String::new();
+        io::stdin()
+            .read_line(&mut prompt)
+            .expect("Failed to read from stdin");
+        let result = prompt_handler.answer(&prompt).await;
+        if let Ok(answer) = result {
+            println!("{}", &answer);
+        } else {
+            println!("{:?}", &result);
+        }
+        return;
     }
 
     let providers = load_providers(config_base_dir.join("code_actions"), prompt_handler);
