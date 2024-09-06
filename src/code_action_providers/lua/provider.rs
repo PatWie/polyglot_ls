@@ -15,7 +15,6 @@ use crate::server::ResolveAction;
 
 use super::bindings::LuaInterface;
 
-
 pub struct LuaProvider {
     prompt_handler: Arc<Llm>,
     lua_source: String,

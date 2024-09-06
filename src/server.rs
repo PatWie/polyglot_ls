@@ -48,6 +48,19 @@ impl std::fmt::Debug for Backend {
     }
 }
 
+pub fn nop_codeaction() -> CodeAction {
+    CodeAction {
+        title: "cancel".to_owned(),
+        kind: None,
+        diagnostics: None,
+        edit: None,
+        command: None,
+        is_preferred: None,
+        disabled: None,
+        data: None,
+    }
+}
+
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {

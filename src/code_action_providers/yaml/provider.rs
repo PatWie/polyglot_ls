@@ -11,6 +11,7 @@ use crate::code_action_providers::traits::ActionContext;
 use crate::code_action_providers::traits::ActionProvider;
 use crate::code_action_providers::{helper, parsed_document::ParsedDocument};
 use crate::llm_handlers::traits::Llm;
+use crate::server::nop_codeaction;
 use crate::server::ResolveAction;
 
 use super::config;
@@ -117,7 +118,7 @@ impl ActionProvider for YamlProvider {
                 }
             }
         }
-        return Err(Error::new(tower_lsp::jsonrpc::ErrorCode::ParseError));
+        return Ok(nop_codeaction());
     }
     fn create_code_action(
         &self,
